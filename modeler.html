@@ -1,0 +1,125 @@
+<html>
+    <head>
+        <style>
+            html, body {
+                width: 100%;
+                height: 100%;
+                margin: 0px;
+                border: 0;
+                display: block;
+            }
+            #overlay {
+                position: absolute;
+                left: 0px;
+                top: -12px;
+                color: white;
+                font-size: 12px;
+                font-family: monospace;
+                padding: 1em;
+                white-space: pre-line;
+                user-select: none;
+            }
+        </style>
+        <script id="vertex-shader" type="x-shader/x-vertex">
+            attribute vec4 vPosition;
+            attribute vec4 vNormal;
+            
+            uniform mat4 mProjection;
+            uniform mat4 mView;
+            uniform mat4 mModel;
+
+            varying vec4 fColor;
+
+            void main() {
+                fColor.rgb = vNormal.xyz;
+                gl_Position = mProjection * mView * mModel * vPosition;
+            }
+        </script>
+        <script id="fragment-shader" type="x-shader/x-fragment">
+            precision mediump float;
+            varying vec4 fColor;
+            void main() {
+                gl_FragColor = vec4((fColor.r), (fColor.g), (fColor.b), 1.0);
+            }
+        </script>
+        <script type="text/javascript" src="../Common/webgl-utils.js"></script>
+        <script type="text/javascript" src="../Common/initShaders.js"></script>
+        <script type="text/javascript" src="../Common/MV.js"></script>
+        <script type="text/javascript" src="../Common/sphere.js"></script>
+        <script type="text/javascript" src="../Common/cube.js"></script>
+        <script type="text/javascript" src="../Common/torus.js"></script>
+        <script type="text/javascript" src="../Common/cylinder.js"></script>
+        <script type="text/javascript" src="../Common/bunny-data.js"></script>
+        <script type="text/javascript" src="../Common/bunny.js"></script>
+        <script type="text/javascript" src="../Common/superquad.js"></script>
+        <script type="text/javascript" src="modeler.js"></script>
+    </head>
+    <body>
+        <title>Model Viewer</title>
+        <canvas id="gl-canvas" width="512" height="512">
+            Oops... your browser doesn't support the HTML5 canvas element"
+        </canvas>
+        <div id="overlay">
+            <div><span id="text"></span></div>
+        </div>
+        <div class="menucontainer">
+            <div class="tabsection">
+              <button class="tabLinks" onclick="openTab('Transformations')">Transformations</button>
+              <button class="tabLinks" onclick="openTab('View')">View</button>
+              <button class="tabLinks" onclick="openTab('Models')">Models</button>
+            </div>
+            <hr>
+            <div id="TransformationsTab" class="tabContent">
+                <table style="width:30%">
+                    <tr>
+                        <th></th>
+                        <th>X</th>
+                        <th>Y</th>
+                        <th>Z</th>
+                    </tr>
+                    <tr>
+                        <th>Position</th>
+                        <th><input type="range" min="-1" max="1" value="0" step="0.01" class="slider" id="objPosX" oninput="updateObjectMatrix()"></th>
+                        <th><input type="range" min="-1" max="1" value="0" step="0.01" class="slider" id="objPosY" oninput="updateObjectMatrix()"></th>
+                        <th><input type="range" min="-1" max="1" value="0" step="0.01" class="slider" id="objPosZ" oninput="updateObjectMatrix()"></th>
+                    </tr>
+                    <tr>
+                        <th>Rotation</th>
+                        <th><input type="range" min="-180" max="180" value="0" class="slider" id="objAngX" oninput="updateObjectMatrix()"></th>
+                        <th><input type="range" min="-180" max="180" value="0" class="slider" id="objAngY" oninput="updateObjectMatrix()"></th>
+                        <th><input type="range" min="-180" max="180" value="0" class="slider" id="objAngZ" oninput="updateObjectMatrix()"></th>
+                    </tr>
+                    <tr>
+                        <th>Scale</th>
+                        <th><input type="range" min="0.05" max="2" value="1" step="0.01" class="slider" id="objSclX" oninput="updateObjectMatrix()"></th>
+                        <th><input type="range" min="0.05" max="2" value="1" step="0.01" class="slider" id="objSclY" oninput="updateObjectMatrix()"></th>
+                        <th><input type="range" min="0.05" max="2" value="1" step="0.01" class="slider" id="objSclZ" oninput="updateObjectMatrix()"></th>
+                    </tr>
+                    <tr>
+                        <th><button onclick="resetObjectMatrix('View')">Reset</button></th>
+                    </tr>
+                </table>
+            </div>
+            <div id="ViewTab" class="tabContent">
+            </div>
+            <div id="ModelsTab" class="tabContent">
+                <table style="width:40%; text-align: left">
+                    <tr><th><input type="radio" value="cubeDraw" name="objectSelect" oninput="setDrawObject(this.value)"> Cube</th></tr>
+                    <tr><th><input type="radio" value="sphereDraw" name="objectSelect" oninput="setDrawObject(this.value)"> Sphere</th></tr>
+                    <tr><th><input type="radio" value="torusDraw" name="objectSelect" oninput="setDrawObject(this.value)"> Torus</th></tr>
+                    <tr><th><input type="radio" value="cylinderDraw" name="objectSelect" oninput="setDrawObject(this.value)"> Cylinder</th></tr>
+                    <tr><th><input type="radio" value="bunnyDraw" name="objectSelect" oninput="setDrawObject(this.value)"> Bunny</th></tr>
+                    <tr>
+                        <th><input type="radio" value="superquadDraw" name="objectSelect" oninput="setDrawObject(this.value)"> Super Quadratic</th>
+                        <th>E1<input type="range" min="0" max="4" value="1" step="0.01" class="slider" id="superQuadE1" oninput="updateSuperQuad()"></th>
+                        <th>E2<input type="range" min="0" max="4" value="1" step="0.01" class="slider" id="superQuadE2" oninput="updateSuperQuad()"></th>
+                    </tr>
+                    <tr>
+                        <th><input type="radio" value="superquadDraw" name="objectSelect" oninput="setDrawObject(this.value)"> Custom .OBJ model</th>
+                        <th><input type="file" name="myFile"></th>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </body>
+</html>
