@@ -9,14 +9,17 @@
 
 // WebGL globals
 var gl;
-var objectDrawFunc;
+var aspect;
+var drawFunc;
+var projectionFunc;
 var modelMTX = mat4();
 var mView, mProjection;
 
 // Camera globals
-var zoom = 1;
-var camera_pitch = -45;
-var camera_yaw = 35.2645;
+var zoom;
+var camera_pitch;
+var camera_yaw;
+var camera_free;
 var mouse_down = false;
 
 // Render settings globals
@@ -30,9 +33,16 @@ var culling_enabled = false;
  Change if you know what you're doing
 ====================================*/
 
-const DEFAULT_TAB = "Transformations"; // Initial tab
-const DEFAULT_OBJECT = "cubeDraw";     // Initial object to draw
-const MENU_SIZE = 0.33                 // Size of the bottom menu (percentage)
+const DEFAULT_TAB = "TransformationsTab"; // Initial tab
+const DEFAULT_VIEW = viewOrtho;           // Initial view
+const DEFAULT_OBJECT = "cubeDraw()";      // Initial object to draw
+const MENU_SIZE = 0.33                    // Size of the bottom menu (percentage)
+
+const DEFAULT_FREE = true; 
+const DEFAULT_ZOOM = 1; 
+
+const DEFAULT_CAMPITCH = -45;
+const DEFAULT_CAMYAW   = Math.atan(1/Math.sqrt(2))*180/Math.PI;
 
 const ROTATE_SPEED = 0.3 // Speed of camera rotation (multiplier)
 const ZOOM_SPEED = 0.9   // Speed of camera zoom (multiplier)
@@ -54,7 +64,7 @@ function openTab(tabName)
         tabLinks[i].className = tabLinks[i].className.replace(" active", "");
 
     // Activate the requested tab and append 'active' to their class name
-    document.getElementById(tabName+"Tab").style.display = "block";
+    document.getElementById(tabName).style.display = "block";
     var elems = document.getElementsByClassName("tabLinks")
     for (var i=0; i<elems.length; i++)
     {
@@ -66,11 +76,20 @@ function openTab(tabName)
     }
 }
 
-// Object radio button handler
-function setDrawObject(func)
+// Tab buttons handler
+function openView(viewName) 
 {
-    objectDrawFunc = window[func];
-    var elems = document.getElementsByName("objectSelect")
+
+}
+
+// Object radio button handler
+function setDrawFunction(func)
+{
+    // Assign the draw function based on the input
+    drawFunc = window[func.split('(')[0]];
+    
+    // Select the radio button that corresponds to the input
+    var elems = document.getElementsByName("drawSelect")
     for (var i=0; i<elems.length; i++)
     {
         if (elems[i].value == func)
@@ -79,6 +98,37 @@ function setDrawObject(func)
             break;
         }
     }
+}
+
+// View radio button handler
+function setProjectionFunction(func, pitch, yaw)
+{
+	// Set the camera pitch/yaw depending on the arguments
+	camera_pitch = (pitch == null) ? DEFAULT_CAMPITCH : pitch;
+	camera_yaw = (yaw == null) ? DEFAULT_CAMYAW : yaw;
+	
+	// Assign the function to call
+    projectionFunc = func;
+
+    // Select the radio button that corresponds to the arguments
+    var elems = document.getElementsByName("projectionSelect")
+    for (var i=0; i<elems.length; i++)
+    {
+		var but = elems[i].oninput;
+		var body = but.toString().slice(but.toString().indexOf("{") + 2, but.toString().lastIndexOf("}")-1);
+		var args = "";
+		args = args + ((pitch == null) ? "" : ", "+pitch);
+		args = args + ((yaw == null) ? "" : ", "+yaw);
+		
+        if (body === "setProjectionFunction("+func.name+args+")")
+        {
+            elems[i].checked = "checked";
+            break;
+        }
+    }
+	
+    // Update the view
+    updateCanvas()
 }
 
 // Transformation sliders handler
@@ -132,14 +182,14 @@ function updateSuperQuad()
 ====================================*/
 
 // Update the canvas to fit the window
-function resizeCanvas() 
+function updateCanvas() 
 {
     // Get the current window size
     var program = gl.getParameter(gl.CURRENT_PROGRAM);
     var canvas = document.getElementById("gl-canvas");
     var w = window.innerWidth;
     var h = window.innerHeight*(1-MENU_SIZE);
-    var aspect = w/h;
+    aspect = w/h;
 
     // Resize the canvas and viewport
     canvas.width = w;
@@ -152,7 +202,7 @@ function resizeCanvas()
     var up = [0, 1, 0];
     mView = lookAt(eye, at, up);
     mView = mult(rotateX(camera_yaw), rotateY(camera_pitch));
-    mProjection = ortho(-1*aspect*zoom, 1*aspect*zoom, -1*zoom, 1*zoom, -10, 10);
+    mProjection = projectionFunc();
     
     // Update the view and projection matricies
     var mProjectionLoc = gl.getUniformLocation(program, "mProjection");
@@ -168,7 +218,9 @@ function handleKeyDown(e)
 
     // Toggle autofire if we pressed the spacebar
     if (key == "f")
-        wireframe_enabled = false;
+        wireframe_enabled = false;    
+	if (key == " ")
+        camera_free = !camera_free;
     if (key == "w")
         wireframe_enabled = true;
     if (key == "z")
@@ -188,7 +240,7 @@ function handleCameraZoom(e)
         zoom = 0.001;
         
     // Update the view
-    resizeCanvas();
+    updateCanvas();
     
     // Prevent the page from scrolling
     return false;
@@ -219,11 +271,11 @@ function handleMouseUp(e)
 // What to do when the mouse is moved
 function handleMouseMove(e)
 {
-    if (mouse_down)
+    if (mouse_down && camera_free)
     {
         camera_pitch += e.movementX*ROTATE_SPEED;
         camera_yaw += e.movementY*ROTATE_SPEED;
-        resizeCanvas();
+        updateCanvas();
     }
 }
 
@@ -247,10 +299,6 @@ window.onload = function init()
     if (!gl)
         alert("WebGL isn't available");
     
-    // Set the initial settings
-    openTab("Transformations");
-    setDrawObject(DEFAULT_OBJECT);
-    
     // Configure the viewport and wipe the framebuffer with a color
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.clearColor(0.25, 0.25, 0.25, 1.0);
@@ -259,8 +307,14 @@ window.onload = function init()
     var program = initShaders(gl, "vertex-shader", "fragment-shader");
     gl.useProgram(program);
     
-    // Resive the canvas
-    resizeCanvas();
+    // Set the initial program settings
+    resetObjectMatrix();
+    openTab(DEFAULT_TAB);
+    setDrawFunction(DEFAULT_OBJECT);
+    setProjectionFunction(DEFAULT_VIEW);
+	
+	camera_free = DEFAULT_FREE;
+	zoom = DEFAULT_ZOOM;
     
     // Initialize the 3D shapes
     cubeInit(gl);
@@ -271,7 +325,7 @@ window.onload = function init()
     superquadInit(gl);
     
     // Setup event listeners
-    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('resize', updateCanvas);
     window.addEventListener('keydown', handleKeyDown);
     canvas.addEventListener('wheel', handleCameraZoom);
     canvas.addEventListener('mousedown', handleMouseDown);
@@ -279,10 +333,57 @@ window.onload = function init()
     canvas.addEventListener('mousemove', handleMouseMove);
     canvas.addEventListener('mouseout', handleMouseOut);
     
-    resetObjectMatrix();
-    
     // Render the model
     render();
+}
+
+
+/*====================================
+             Camera Views
+====================================*/
+
+// Basic perspective view
+function viewPersp(args)
+{
+    var fovy = 30;
+    var near = 0.001;
+    var far = 10;
+    var f = 1.0/Math.tan(radians(fovy)/2);
+    var d = far - near;
+
+    var result = mat4();
+    result[0][0] = f/aspect;
+    result[1][1] = f;
+    result[2][2] = -(near+far)/d;
+    result[2][3] = -2*near*far/d;
+    result[3][2] = -1;
+    result[3][3] = 0.0;
+
+    return result;
+}
+
+// Basic orthgraphic view
+function viewOrtho()
+{
+    var left = -1*aspect*zoom;
+    var right = 1*aspect*zoom;
+    var bottom = -1*zoom;
+    var top =1*zoom ;
+    var near = -10;
+    var far = 10;
+    var w = right-left;
+    var h = top-bottom;
+    var d = far-near;
+
+    var result = mat4();
+    result[0][0] = 2.0/w;
+    result[1][1] = 2.0/h;
+    result[2][2] = -2.0/d;
+    result[0][3] = -(left + right)/w;
+    result[1][3] = -(top + bottom)/h;
+    result[2][3] = -(near + far)/d;
+
+    return result;
 }
 
 
@@ -294,7 +395,7 @@ window.onload = function init()
 function renderText()
 {
     var textElement = document.getElementById("text");
-    textElement.textContent = "Zoom: "+zoom.toFixed(3)+"\nWireframe: "+wireframe_enabled+"\nZ-Buffer: "+zbuffer_enabled+"\nCulling: "+culling_enabled;
+    textElement.textContent = "Zoom: "+zoom.toFixed(3)+"\nWireframe: "+wireframe_enabled+"\nZ-Buffer: "+zbuffer_enabled+"\nCulling: "+culling_enabled+"\nFree Camera: "+camera_free;
 }
 
 // Render onto the canvas
@@ -323,7 +424,7 @@ function render()
     gl.uniformMatrix4fv(mModelLoc, false, flatten(modelMTX));
 
     // Draw the shape
-    objectDrawFunc(gl, program, !wireframe_enabled)
+    drawFunc(gl, program, !wireframe_enabled)
     renderText()
 
     // Redraw the scene

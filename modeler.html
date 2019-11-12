@@ -64,9 +64,9 @@
         </div>
         <div class="menucontainer">
             <div class="tabsection">
-              <button class="tabLinks" onclick="openTab('Transformations')">Transformations</button>
-              <button class="tabLinks" onclick="openTab('View')">View</button>
-              <button class="tabLinks" onclick="openTab('Models')">Models</button>
+              <button class="tabLinks" onclick="openTab('TransformationsTab')">Transformations</button>
+              <button class="tabLinks" onclick="openTab('ProjectionsTab')">Projections</button>
+              <button class="tabLinks" onclick="openTab('ModelsTab')">Models</button>
             </div>
             <hr>
             <div id="TransformationsTab" class="tabContent">
@@ -100,23 +100,44 @@
                     </tr>
                 </table>
             </div>
-            <div id="ViewTab" class="tabContent">
+            <div id="ProjectionsTab" class="tabContent">
+				<button class="viewLinks" onclick="openView('OrtognalView')">Orthogonal</button>
+				<button class="viewLinks" onclick="openView('AxonometricView')">Axonometric</button>
+				<button class="viewLinks" onclick="openView('ObliqueView')">Oblique</button>
+				<button class="viewLinks" onclick="openView('PerspectiveView')">Perspective</button>
+				<div id="OrtognalView" class="viewContent">
+					<table style="width:40%; text-align: left">
+						<tr><th><input type="radio" name="projectionSelect" oninput="setProjectionFunction(viewOrtho, 0, 0)"> Alçado Principal</th></tr>
+						<tr><th><input type="radio" name="projectionSelect" oninput="setProjectionFunction(viewOrtho, -90, 0)"> Alçado Lateral Direito</th></tr>
+						<tr><th><input type="radio" name="projectionSelect" oninput="setProjectionFunction(viewOrtho, 0, 90)"> Planta</th></tr>
+						<tr><th><input type="radio" name="projectionSelect" oninput="setProjectionFunction(viewOrtho)"> Oblíqua</th></tr>
+					</table>
+				</div>
+				<div id="AxonometricView" class="viewContent">
+				</div>
+				<div id="ObliqueView" class="viewContent">
+				</div>
+				<div id="PerspectiveView" class="viewContent">
+					<table style="width:40%; text-align: left">
+						<tr><th><input type="radio" name="projectionSelect" oninput="setProjectionFunction(viewPersp)"> Perspective</th></tr>
+					</table>
+				</div>
             </div>
             <div id="ModelsTab" class="tabContent">
                 <table style="width:40%; text-align: left">
-                    <tr><th><input type="radio" value="cubeDraw" name="objectSelect" oninput="setDrawObject(this.value)"> Cube</th></tr>
-                    <tr><th><input type="radio" value="sphereDraw" name="objectSelect" oninput="setDrawObject(this.value)"> Sphere</th></tr>
-                    <tr><th><input type="radio" value="torusDraw" name="objectSelect" oninput="setDrawObject(this.value)"> Torus</th></tr>
-                    <tr><th><input type="radio" value="cylinderDraw" name="objectSelect" oninput="setDrawObject(this.value)"> Cylinder</th></tr>
-                    <tr><th><input type="radio" value="bunnyDraw" name="objectSelect" oninput="setDrawObject(this.value)"> Bunny</th></tr>
+                    <tr><th><input type="radio" value="cubeDraw()" name="drawSelect" oninput="setDrawFunction(this.value)"> Cube</th></tr>
+                    <tr><th><input type="radio" value="sphereDraw()" name="drawSelect" oninput="setDrawFunction(this.value)"> Sphere</th></tr>
+                    <tr><th><input type="radio" value="torusDraw()" name="drawSelect" oninput="setDrawFunction(this.value)"> Torus</th></tr>
+                    <tr><th><input type="radio" value="cylinderDraw()" name="drawSelect" oninput="setDrawFunction(this.value)"> Cylinder</th></tr>
+                    <tr><th><input type="radio" value="bunnyDraw()" name="drawSelect" oninput="setDrawFunction(this.value)"> Bunny</th></tr>
                     <tr>
-                        <th><input type="radio" value="superquadDraw" name="objectSelect" oninput="setDrawObject(this.value)"> Super Quadratic</th>
+                        <th><input type="radio" value="superquadDraw()" name="drawSelect" oninput="setDrawFunction(this.value)"> Super Quadratic</th>
                         <th>E1<input type="range" min="0" max="4" value="1" step="0.01" class="slider" id="superQuadE1" oninput="updateSuperQuad()"></th>
                         <th>E2<input type="range" min="0" max="4" value="1" step="0.01" class="slider" id="superQuadE2" oninput="updateSuperQuad()"></th>
                     </tr>
                     <tr>
-                        <th><input type="radio" value="superquadDraw" name="objectSelect" oninput="setDrawObject(this.value)"> Custom .OBJ model</th>
-                        <th><input type="file" name="myFile"></th>
+                        <th><input type="radio" value="superquadDraw()" name="drawSelect" oninput="setDrawFunction(this.value)"> Custom .OBJ model</th>
+                        <th><input type="file" value="objDraw()" name="drawSelect"></th>
                     </tr>
                 </table>
             </div>
