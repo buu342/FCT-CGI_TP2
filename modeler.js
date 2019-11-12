@@ -79,7 +79,25 @@ function openTab(tabName)
 // Tab buttons handler
 function openView(viewName) 
 {
+    // Hide all tabs
+    var viewContent = document.getElementsByClassName("viewContent");
+    var viewLinks = document.getElementsByClassName("viewLinks");
+    for (var i=0; i<viewContent.length; i++)
+        viewContent[i].style.display = "none";
+    for (var i=0; i<viewLinks.length; i++)
+        viewLinks[i].className = viewLinks[i].className.replace(" active", "");
 
+    // Activate the requested tab and append 'active' to their class name
+    document.getElementById(viewName).style.display = "block";
+    var elems = document.getElementsByClassName("viewLinks")
+    for (var i=0; i<elems.length; i++)
+    {
+        if (elems[i].innerHTML == viewName)
+        {
+            elems[i].className += " active";
+            break;
+        }
+    }
 }
 
 // Object radio button handler
@@ -123,6 +141,7 @@ function setProjectionFunction(func, pitch, yaw)
         if (body === "setProjectionFunction("+func.name+args+")")
         {
             elems[i].checked = "checked";
+            openView(elems[i].parentNode.parentNode.parentNode.parentNode.parentNode.id);
             break;
         }
     }
