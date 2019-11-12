@@ -306,16 +306,17 @@ window.onload = function init()
     // Attach the vertex and fragment shader to our program
     var program = initShaders(gl, "vertex-shader", "fragment-shader");
     gl.useProgram(program);
+    	
+	camera_free = DEFAULT_FREE;
+	zoom = DEFAULT_ZOOM;
     
     // Set the initial program settings
     resetObjectMatrix();
     openTab(DEFAULT_TAB);
     setDrawFunction(DEFAULT_OBJECT);
     setProjectionFunction(DEFAULT_VIEW);
-	
-	camera_free = DEFAULT_FREE;
-	zoom = DEFAULT_ZOOM;
     
+
     // Initialize the 3D shapes
     cubeInit(gl);
     sphereInit(gl);
