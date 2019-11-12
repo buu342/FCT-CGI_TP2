@@ -3,6 +3,17 @@
  * By Lourenço Soares (54530)
  */
  
+/**
+    TODO:
+    - Implement perspective mode
+    - Implement perspective mode zoom
+    - Block the sliders unless free mode is on
+    - Implement interface memory as in the requirements
+    - Check if all the requirements are finished
+    - Make nicer UI
+    - Implement OBJ file importer
+*/
+ 
 /*====================================
            Global Variables
 ====================================*/
@@ -11,7 +22,7 @@
 var gl;
 var aspect;
 var drawFunc;
-var projectionFunc;
+var projectionFunc, projectionArgs;
 var modelMTX = mat4();
 var mView, mProjection;
 
@@ -35,17 +46,28 @@ var culling_enabled = false;
 
 const DEFAULT_TAB = "TransformationsTab"; // Initial tab
 const DEFAULT_VIEW = viewOrtho;           // Initial view
-const DEFAULT_OBJECT = "cubeDraw()";      // Initial object to draw
+const DEFAULT_ANG = mat4();               // Initial view angle
+const DEFAULT_OBJECT = cubeDraw;          // Initial object to draw
 const MENU_SIZE = 0.33                    // Size of the bottom menu (percentage)
 
-const DEFAULT_FREE = true; 
-const DEFAULT_ZOOM = 1; 
+const SELECT_FREE = false; // Select the free option automatically if a slider is changed
 
-const DEFAULT_CAMPITCH = -45;
-const DEFAULT_CAMYAW   = Math.atan(1/Math.sqrt(2))*180/Math.PI;
+const DEFAULT_ZOOM = 1; 
+const DEFAULT_FREE = true; 
 
 const ROTATE_SPEED = 0.3 // Speed of camera rotation (multiplier)
 const ZOOM_SPEED = 0.9   // Speed of camera zoom (multiplier)
+
+
+/*====================================
+           Helper Functions
+====================================*/
+
+// Convert a radian angle to degrees
+function degrees(angle)
+{
+    return angle*180/Math.PI;
+}
 
 
 /*====================================
@@ -86,7 +108,7 @@ function openView(viewName)
         viewContent[i].style.display = "none";
     for (var i=0; i<viewLinks.length; i++)
         viewLinks[i].className = viewLinks[i].className.replace(" active", "");
-
+    
     // Activate the requested tab and append 'active' to their class name
     document.getElementById(viewName).style.display = "block";
     var elems = document.getElementsByClassName("viewLinks")
@@ -100,51 +122,48 @@ function openView(viewName)
     }
 }
 
+// Axonometric slider limiter
+function axonSliderLimit(sliderName)
+{
+    var thisSlider = document.getElementById(sliderName);
+    var otherSlider = document.getElementById(sliderName === "AxonometricA" ? "AxonometricB" : "AxonometricA");
+
+    // Force the sum of the two sliders to be 90 or less
+    if ((+thisSlider.value) + (+otherSlider.value) > 90)
+        otherSlider.value = 90-thisSlider.value;
+}
+
 // Object radio button handler
 function setDrawFunction(func)
 {
     // Assign the draw function based on the input
-    drawFunc = window[func.split('(')[0]];
+    if (typeof func === 'string')
+        drawFunc = window[func];
+    else
+        drawFunc = func;
     
     // Select the radio button that corresponds to the input
     var elems = document.getElementsByName("drawSelect")
     for (var i=0; i<elems.length; i++)
     {
-        if (elems[i].value == func)
+        if (elems[i].value === drawFunc.name)
         {
-            elems[i].checked = "checked";
+            elems[i].checked = true;
             break;
         }
     }
 }
 
 // View radio button handler
-function setProjectionFunction(func, pitch, yaw)
+function setProjectionFunction(func, args)
 {
-	// Set the camera pitch/yaw depending on the arguments
-	camera_pitch = (pitch == null) ? DEFAULT_CAMPITCH : pitch;
-	camera_yaw = (yaw == null) ? DEFAULT_CAMYAW : yaw;
+	// Reset the camera
+	camera_pitch = 0;
+	camera_yaw = 0;
 	
 	// Assign the function to call
     projectionFunc = func;
-
-    // Select the radio button that corresponds to the arguments
-    var elems = document.getElementsByName("projectionSelect")
-    for (var i=0; i<elems.length; i++)
-    {
-		var but = elems[i].oninput;
-		var body = but.toString().slice(but.toString().indexOf("{") + 2, but.toString().lastIndexOf("}")-1);
-		var args = "";
-		args = args + ((pitch == null) ? "" : ", "+pitch);
-		args = args + ((yaw == null) ? "" : ", "+yaw);
-		
-        if (body === "setProjectionFunction("+func.name+args+")")
-        {
-            elems[i].checked = "checked";
-            openView(elems[i].parentNode.parentNode.parentNode.parentNode.parentNode.id);
-            break;
-        }
-    }
+    projectionArgs = args;
 	
     // Update the view
     updateCanvas()
@@ -221,7 +240,10 @@ function updateCanvas()
     var up = [0, 1, 0];
     mView = lookAt(eye, at, up);
     mView = mult(rotateX(camera_yaw), rotateY(camera_pitch));
-    mProjection = projectionFunc();
+    var newProjection = projectionFunc(projectionArgs);
+    
+    if (newProjection != null)
+        mProjection = newProjection;
     
     // Update the view and projection matricies
     var mProjectionLoc = gl.getUniformLocation(program, "mProjection");
@@ -318,6 +340,20 @@ window.onload = function init()
     if (!gl)
         alert("WebGL isn't available");
     
+    // Hide all tabs
+    var tabContent = document.getElementsByClassName("tabContent");
+    var tabLinks = document.getElementsByClassName("tabLinks");
+    for (var i=0; i<tabContent.length; i++)
+        tabContent[i].style.display = "none";
+    for (var i=0; i<tabLinks.length; i++)
+        tabLinks[i].className = tabLinks[i].className.replace(" active", "");
+    tabContent = document.getElementsByClassName("viewContent");
+    tabLinks = document.getElementsByClassName("viewLinks");
+    for (var i=0; i<tabContent.length; i++)
+        tabContent[i].style.display = "none";
+    for (var i=0; i<tabLinks.length; i++)
+        tabLinks[i].className = tabLinks[i].className.replace(" active", "");
+    
     // Configure the viewport and wipe the framebuffer with a color
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.clearColor(0.25, 0.25, 0.25, 1.0);
@@ -325,7 +361,8 @@ window.onload = function init()
     // Attach the vertex and fragment shader to our program
     var program = initShaders(gl, "vertex-shader", "fragment-shader");
     gl.useProgram(program);
-    	
+    
+    // Set the global variables
 	camera_free = DEFAULT_FREE;
 	zoom = DEFAULT_ZOOM;
     
@@ -333,9 +370,8 @@ window.onload = function init()
     resetObjectMatrix();
     openTab(DEFAULT_TAB);
     setDrawFunction(DEFAULT_OBJECT);
-    setProjectionFunction(DEFAULT_VIEW);
+    setProjectionFunction(DEFAULT_VIEW, DEFAULT_ANG);
     
-
     // Initialize the 3D shapes
     cubeInit(gl);
     sphereInit(gl);
@@ -362,7 +398,119 @@ window.onload = function init()
              Camera Views
 ====================================*/
 
+// Orthograpic projection matrix generator
+// Arguments - A rotation matrix
+function viewOrtho(args)
+{
+    // Define the shape of the cube projection
+    var left = -1*aspect*zoom;
+    var right = 1*aspect*zoom;
+    var bottom = -1*zoom;
+    var top =1*zoom ;
+    var near = -10;
+    var far = 10;
+    var w = right-left;
+    var h = top-bottom;
+    var d = far-near;
+
+    // Create one of the projection matricies
+    var result = mat4();
+    result[0][0] = 2.0/w;
+    result[1][1] = 2.0/h;
+    result[2][2] = -2.0/d;
+    result[0][3] = -(left + right)/w;
+    result[1][3] = -(top + bottom)/h;
+    result[2][3] = -(near + far)/d;
+    
+    // Return the projection matrix
+    return mult(result, args);
+}
+
+// Oblique projection matrix generator
+// Arguments - An array with the first index being ratio, second being angle
+function viewOblique(args)
+{
+    // If we don't have any arguments, assume we're using "Free" mode
+    if (!args)
+    {
+        args = [document.getElementById('obliqueRatio').value, document.getElementById('obliqueAngle').value]
+               
+        // Select the radio button that corresponds to "Free"
+        var elems = document.getElementsByName("projectionSelect")
+        for (var i=0; i<elems.length; i++)
+        {
+            if (elems[i].id == "ObliqueFree") 
+            {
+                if (!elems[i].checked && !SELECT_FREE)
+                    return;
+                elems[i].checked = true;
+            }
+        }
+        
+        // Deselect everything else
+        for (var i=0; i<elems.length; i++)
+            if (elems[i].id != "ObliqueFree") 
+                elems[i].checked = false;
+    }
+
+    // Set the ratio and args
+    var ratio = args[0];
+    var angle = args[1];
+
+    // Create the projection matricies
+    var ortho = viewOrtho(mat4());
+    var oblique = mat4();
+    oblique[0][2] = -ratio*Math.cos(radians(angle));
+    oblique[1][2] = -ratio*Math.sin(radians(angle));
+    oblique[2][2] = 0;
+
+    // Return the projection matrix
+    return mult(ortho, oblique);
+}
+
+// Axonometric projection matrix generator
+// Arguments - An array with the first index being A, second being B
+function viewAxonometric(args)
+{
+    // If we don't have any arguments, assume we're using "Free" mode
+    if (!args)
+    {
+        args = [document.getElementById('AxonometricA').value, document.getElementById('AxonometricB').value]
+        
+        // Select the radio button that corresponds to "Free"
+        var elems = document.getElementsByName("projectionSelect")
+        for (var i=0; i<elems.length; i++)
+        {
+            if (elems[i].id == "AxonometricFree") 
+            {
+                if (!elems[i].checked && !SELECT_FREE)
+                    return;
+                elems[i].checked = true;
+            }
+        }
+        
+        // Deselect everything else
+        for (var i=0; i<elems.length; i++)
+            if (elems[i].id != "AxonometricFree") 
+                elems[i].checked = false;
+    }
+    
+    var A = args[0];
+    var B = args[1];
+    
+    var theta = Math.atan(Math.sqrt(Math.tan(radians(A))/Math.tan(radians(B))))-Math.PI/2;
+    var gamma = Math.asin(Math.sqrt(Math.tan(radians(A))*Math.tan(radians(B))));
+    
+    // Create the projection matricies
+    var ortho = viewOrtho(mat4());
+    ortho[2][2] = 0;
+
+    // Return the projection matrix
+    return mult(ortho, mult(rotateX(degrees(gamma)), rotateY(degrees(theta))));
+}
+
 // Basic perspective view
+// Arguments - ?
 function viewPersp(args)
 {
     var fovy = 30;
@@ -378,30 +526,6 @@ function viewPersp(args)
     result[2][3] = -2*near*far/d;
     result[3][2] = -1;
     result[3][3] = 0.0;
-
-    return result;
-}
-
-// Basic orthgraphic view
-function viewOrtho()
-{
-    var left = -1*aspect*zoom;
-    var right = 1*aspect*zoom;
-    var bottom = -1*zoom;
-    var top =1*zoom ;
-    var near = -10;
-    var far = 10;
-    var w = right-left;
-    var h = top-bottom;
-    var d = far-near;
-
-    var result = mat4();
-    result[0][0] = 2.0/w;
-    result[1][1] = 2.0/h;
-    result[2][2] = -2.0/d;
-    result[0][3] = -(left + right)/w;
-    result[1][3] = -(top + bottom)/h;
-    result[2][3] = -(near + far)/d;
 
     return result;
 }
