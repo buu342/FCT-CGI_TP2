@@ -5,13 +5,13 @@
  
 /**
     TODO:
-    - Implement perspective mode
-    - Implement perspective mode zoom
+    - Set initial view to Axonometric Dimetric
     - Block the sliders unless free mode is on
     - Implement interface memory as in the requirements
     - Check if all the requirements are finished
-    - Make nicer UI
+    - Revise comments (especially in the view* functions)
     - Implement OBJ file importer
+    - Make nicer UI
 */
  
 /*====================================
@@ -45,12 +45,12 @@ var culling_enabled = false;
 ====================================*/
 
 const DEFAULT_TAB = "TransformationsTab"; // Initial tab
-const DEFAULT_VIEW = viewOrtho;           // Initial view
-const DEFAULT_ANG = mat4();               // Initial view angle
+const DEFAULT_VIEW = viewAxonometric;     // Initial view
+const DEFAULT_ARGS = [42, 7];             // Initial arguments
 const DEFAULT_OBJECT = cubeDraw;          // Initial object to draw
 const MENU_SIZE = 0.33                    // Size of the bottom menu (percentage)
 
-const SELECT_FREE = false; // Select the free option automatically if a slider is changed
+const SELECT_FREE = false; // Select the "Free" mode automatically if a slider is changed
 
 const DEFAULT_ZOOM = 1; 
 const DEFAULT_FREE = true; 
@@ -155,11 +155,14 @@ function setDrawFunction(func)
 }
 
 // View radio button handler
-function setProjectionFunction(func, args)
+function setProjectionFunction(func, args, resetCam)
 {
 	// Reset the camera
-	camera_pitch = 0;
-	camera_yaw = 0;
+    if (resetCam == null || !resetCam)
+    {
+        camera_pitch = 0;
+        camera_yaw = 0;
+    }
 	
 	// Assign the function to call
     projectionFunc = func;
@@ -172,15 +175,15 @@ function setProjectionFunction(func, args)
 // Transformation sliders handler
 function updateObjectMatrix()
 {
-    var sliderPosX = document.getElementById('objPosX').value
-    var sliderPosY = document.getElementById('objPosY').value
-    var sliderPosZ = document.getElementById('objPosZ').value
-    var sliderAngX = document.getElementById('objAngX').value
-    var sliderAngY = document.getElementById('objAngY').value
-    var sliderAngZ = document.getElementById('objAngZ').value
-    var sliderSclX = document.getElementById('objSclX').value
-    var sliderSclY = document.getElementById('objSclY').value
-    var sliderSclZ = document.getElementById('objSclZ').value
+    var sliderPosX = +document.getElementById('objPosX').value
+    var sliderPosY = +document.getElementById('objPosY').value
+    var sliderPosZ = +document.getElementById('objPosZ').value
+    var sliderAngX = +document.getElementById('objAngX').value
+    var sliderAngY = +document.getElementById('objAngY').value
+    var sliderAngZ = +document.getElementById('objAngZ').value
+    var sliderSclX = +document.getElementById('objSclX').value
+    var sliderSclY = +document.getElementById('objSclY').value
+    var sliderSclZ = +document.getElementById('objSclZ').value
     
     modelMTX = mult(translate(sliderPosX, sliderPosY, sliderPosZ), 
                         mult(rotateX(sliderAngX),
@@ -209,8 +212,8 @@ function resetObjectMatrix()
 // Super quad slider handler
 function updateSuperQuad()
 {
-    var e1 = document.getElementById('superQuadE1').value
-    var e2 = document.getElementById('superQuadE2').value
+    var e1 = +document.getElementById('superQuadE1').value
+    var e2 = +document.getElementById('superQuadE2').value
     superquadBuild(e1, e2)
 }
 
@@ -235,15 +238,10 @@ function updateCanvas()
     gl.viewport(0, 0, w, h);
 
     // Setup the view
-    var at = [0, 0, 0];
-    var eye = [1, 1, 1];
-    var up = [0, 1, 0];
-    mView = lookAt(eye, at, up);
-    mView = mult(rotateX(camera_yaw), rotateY(camera_pitch));
-    var newProjection = projectionFunc(projectionArgs);
-    
-    if (newProjection != null)
-        mProjection = newProjection;
+
+    mView = projectionFunc(projectionArgs);
+    mView = mult(mView, mult(rotateX(camera_yaw), rotateY(camera_pitch)));
+    mProjection = orthographicCube();
     
     // Update the view and projection matricies
     var mProjectionLoc = gl.getUniformLocation(program, "mProjection");
@@ -370,7 +368,7 @@ window.onload = function init()
     resetObjectMatrix();
     openTab(DEFAULT_TAB);
     setDrawFunction(DEFAULT_OBJECT);
-    setProjectionFunction(DEFAULT_VIEW, DEFAULT_ANG);
+    setProjectionFunction(DEFAULT_VIEW, DEFAULT_ARGS);
     
     // Initialize the 3D shapes
     cubeInit(gl);
@@ -398,9 +396,8 @@ window.onload = function init()
              Camera Views
 ====================================*/
 
-// Orthograpic projection matrix generator
-// Arguments - A rotation matrix
-function viewOrtho(args)
+// Generates a cube matrix for use with orthographic projection
+function orthographicCube()
 {
     // Define the shape of the cube projection
     var left = -1*aspect*zoom;
@@ -423,8 +420,16 @@ function viewOrtho(args)
     result[2][3] = -(near + far)/d;
     
     // Return the projection matrix
-    return mult(result, args);
+    return result;
 }
+
+// Orthograpic projection matrix generator
+// Arguments - A rotation matrix
+function viewOrtho(args)
+{
+    return mult(mat4(), args);
+}
+
 
 // Oblique projection matrix generator
 // Arguments - An array with the first index being ratio, second being angle
@@ -433,7 +438,7 @@ function viewOblique(args)
     // If we don't have any arguments, assume we're using "Free" mode
     if (!args)
     {
-        args = [document.getElementById('obliqueRatio').value, document.getElementById('obliqueAngle').value]
+        args = [+document.getElementById('obliqueRatio').value, +document.getElementById('obliqueAngle').value]
                
         // Select the radio button that corresponds to "Free"
         var elems = document.getElementsByName("projectionSelect")
@@ -458,14 +463,12 @@ function viewOblique(args)
     var angle = args[1];
 
     // Create the projection matricies
-    var ortho = viewOrtho(mat4());
     var oblique = mat4();
     oblique[0][2] = -ratio*Math.cos(radians(angle));
     oblique[1][2] = -ratio*Math.sin(radians(angle));
-    oblique[2][2] = 0;
 
     // Return the projection matrix
-    return mult(ortho, oblique);
+    return oblique;
 }
 
 // Axonometric projection matrix generator
@@ -475,7 +478,7 @@ function viewAxonometric(args)
     // If we don't have any arguments, assume we're using "Free" mode
     if (!args)
     {
-        args = [document.getElementById('AxonometricA').value, document.getElementById('AxonometricB').value]
+        args = [+document.getElementById('AxonometricA').value, +document.getElementById('AxonometricB').value]
         
         // Select the radio button that corresponds to "Free"
         var elems = document.getElementsByName("projectionSelect")
@@ -501,31 +504,21 @@ function viewAxonometric(args)
     var theta = Math.atan(Math.sqrt(Math.tan(radians(A))/Math.tan(radians(B))))-Math.PI/2;
     var gamma = Math.asin(Math.sqrt(Math.tan(radians(A))*Math.tan(radians(B))));
     
-    // Create the projection matricies
-    var ortho = viewOrtho(mat4());
-    ortho[2][2] = 0;
-
     // Return the projection matrix
-    return mult(ortho, mult(rotateX(degrees(gamma)), rotateY(degrees(theta))));
+    return mult(rotateX(degrees(gamma)), rotateY(degrees(theta)));
 }
 
 // Basic perspective view
-// Arguments - ?
+// Arguments - The value of D
 function viewPersp(args)
 {
-    var fovy = 30;
-    var near = 0.001;
-    var far = 10;
-    var f = 1.0/Math.tan(radians(fovy)/2);
-    var d = far - near;
-
+    if (!args)
+        args = [+document.getElementById('PerspD').value]
+    
+    var d = args[0]+zoom;
+    
     var result = mat4();
-    result[0][0] = f/aspect;
-    result[1][1] = f;
-    result[2][2] = -(near+far)/d;
-    result[2][3] = -2*near*far/d;
-    result[3][2] = -1;
-    result[3][3] = 0.0;
+    result[3][2] = -1/d;
 
     return result;
 }
