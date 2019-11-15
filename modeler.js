@@ -5,7 +5,6 @@
  
 /**
     TODO:
-    - Check if all the requirements are finished
     - Make nicer UI in CSS
 */
  
