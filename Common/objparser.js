@@ -89,18 +89,25 @@ function OBJBuild(file)
             case "f":
                 var face = []
                 
+                // Check that there are three faces
+                if (lines[i].length != 4)
+                {
+                    alert("This model is not triangulated!");
+                    return false;
+                }
+                  
                 // Read the input and split the data
                 face[0] = lines[i][1].split("/");
                 face[1] = lines[i][2].split("/");
                 face[2] = lines[i][3].split("/");
                 
-                // Check that the face has vertex, texture coordinates, and vertex normals data
-                if (flatten(face).length != 9)
+                // Check that there are 3 values in the face (vertex, texture, and normal)
+                if (face[0].length != 3)
                 {
                     alert("This model is missing data! Did you export with normals and texture coords enabled?");
                     return false;
                 }
-                
+
                 // Push the data to the temp faces list
                 tempfaces.push({vert: +face[0][0]-1, norm: +face[0][2]-1});
                 tempfaces.push({vert: +face[1][0]-1, norm: +face[1][2]-1});
@@ -345,6 +352,7 @@ function errorDrawFilled(gl, program)
 
 // Draw the model
 function OBJDraw(gl, program, filled=false) {
+    // Show the model if the import was successful, otherwise show the ERROR model
     if (OBJ_ImportSuccess)
     {
         if(filled) OBJDrawFilled(gl, program);
