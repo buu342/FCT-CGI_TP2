@@ -13,13 +13,14 @@ var SUPERQUAD_E2 = 1;
 var SUPERQUAD_LATS = 20;
 var SUPERQUAD_LONS = 30;
 
+// Initialize the superquad creation routine
 function superquadInit(gl, e1, e2) {
     e1 = e1 | SUPERQUAD_E1;
     e2 = e2 | SUPERQUAD_E2;
     superquadBuild(e1, e2);
 }
 
-// Generate points using polar coordinates
+// Generate the superquad
 function superquadBuild(e1, e2) 
 {
     var d_phi = Math.PI / SUPERQUAD_LATS;
@@ -33,17 +34,17 @@ function superquadBuild(e1, e2)
     superquad_edges = [];
     
     // Generate north polar cap
-    var north = vec3(0, 0, -r);
+    var north = vec3(0, -r, 0);
     superquad_points.push(north);
-    superquad_normals.push(vec3(0,0,-1));
+    superquad_normals.push(vec3(0,-1,0));
     
     // Generate middle
     for(var i=0, phi=0; i<SUPERQUAD_LATS; i++, phi+=d_phi) {
         for(var j=0, the=Math.PI/4; j<SUPERQUAD_LONS; j++, the+=d_theta) {
             var pt = vec3(
                 -r * Math.sign(Math.cos(the)) * Math.sign(Math.sin(phi)) * Math.pow(Math.abs(Math.cos(the)), e1) * Math.pow(Math.abs(Math.sin(phi)), e2),
-                -r * Math.sign(Math.sin(phi)) * Math.sign(Math.sin(the)) * Math.pow(Math.abs(Math.sin(the)), e1) * Math.pow(Math.abs(Math.sin(phi)), e2),
-                -r * Math.sign(Math.cos(phi)) * Math.pow(Math.abs(Math.cos(phi)), e2)
+                -r * Math.sign(Math.cos(phi)) * Math.pow(Math.abs(Math.cos(phi)), e2),
+                -r * Math.sign(Math.sin(phi)) * Math.sign(Math.sin(the)) * Math.pow(Math.abs(Math.sin(the)), e1) * Math.pow(Math.abs(Math.sin(phi)), e2)
             );
             superquad_points.push(pt);
             var n = vec3(pt);
@@ -52,9 +53,9 @@ function superquadBuild(e1, e2)
     }
     
     // Generate north/south cap
-    var south = vec3(0,0,r);
+    var south = vec3(0,r,0);
     superquad_points.push(south);
-    superquad_normals.push(vec3(0,0,1));
+    superquad_normals.push(vec3(0,1,0));
     
     
     // -- Generate the faces -- \\
@@ -132,6 +133,7 @@ function superquadBuild(e1, e2)
     superquadUploadData(gl);
 }
 
+// Upload data to the buffers
 function superquadUploadData(gl)
 {
     superquad_points_buffer = gl.createBuffer();
@@ -151,26 +153,25 @@ function superquadUploadData(gl)
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(superquad_edges), gl.STATIC_DRAW);
 }
 
+// Draw the points on the model. For debugging
 function superquadDrawPoints(gl, program)
 {    
     gl.useProgram(program);
     
     gl.bindBuffer(gl.ARRAY_BUFFER, superquad_points_buffer);
-    gl.bufferData(gl.ARRAY_BUFFER, flatten(superquad_points), gl.STATIC_DRAW);
     var vPosition = gl.getAttribLocation(program, "vPosition");
     gl.vertexAttribPointer(vPosition, 3, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(vPosition);
     
     gl.bindBuffer(gl.ARRAY_BUFFER, superquad_normals_buffer);
-    gl.bufferData(gl.ARRAY_BUFFER, flatten(superquad_normals), gl.STATIC_DRAW);
     var vNormal = gl.getAttribLocation(program, "vNormal");
     gl.vertexAttribPointer(vNormal, 3, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(vNormal);
     
-    gl.bindBuffer(gl.ARRAY_BUFFER, superquad_points_buffer);
     gl.drawArrays(gl.POINTS, 0, superquad_points.length);
 }
 
+// Draw a wireframe mesh of the model
 function superquadDrawWireFrame(gl, program)
 {    
     gl.useProgram(program);
@@ -189,6 +190,7 @@ function superquadDrawWireFrame(gl, program)
     gl.drawElements(gl.LINES, superquad_edges.length, gl.UNSIGNED_SHORT, 0);
 }
 
+// Draw the model with visible faces
 function superquadDrawFilled(gl, program)
 {
     gl.useProgram(program);
@@ -207,6 +209,7 @@ function superquadDrawFilled(gl, program)
     gl.drawElements(gl.TRIANGLES, superquad_faces.length, gl.UNSIGNED_SHORT, 0);
 }
 
+// Draw the model
 function superquadDraw(gl, program, filled=false) {
 	if(filled) superquadDrawFilled(gl, program);
 	else superquadDrawWireFrame(gl, program);
