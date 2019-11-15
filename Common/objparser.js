@@ -2,8 +2,8 @@
     Basic OBJ file parser
     
     Requires:
-        - Vertex normals to be provided in the file
         - Triangulated faces
+        - Vertex normals to be provided in the file
 */
 
 var OBJ_points = [];
@@ -50,6 +50,7 @@ function OBJInit(gl, file) {
             // If all is good, upload the data
             OBJ_ImportSuccess = true;
             OBJUploadData(gl);
+            setDrawFunction("OBJDraw");
         }
         
     }
@@ -104,7 +105,7 @@ function OBJBuild(file)
                 // Check that there are 3 values in the face (vertex, texture, and normal)
                 if (face[0].length != 3)
                 {
-                    alert("This model is missing data! Did you export with normals and texture coords enabled?");
+                    alert("This model is missing data! Did you export with normal coordinates enabled?");
                     return false;
                 }
 

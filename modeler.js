@@ -5,8 +5,6 @@
  
 /**
     TODO:
-    - Block the sliders unless free mode is on
-    - Implement interface memory as in the requirements
     - Check if all the requirements are finished
     - Make nicer UI in CSS
 */
@@ -38,20 +36,20 @@ var culling_enabled = false;
 
 /*====================================
           Program Constants
- Change if you know what you're doing
+   Change to customize the program
 ====================================*/
 
-const DEFAULT_TAB = "TransformationsTab";  // Initial tab
-const DEFAULT_VIEW = "AxonometricDimetric" // Initial view
-const DEFAULT_OBJECT = "cubeDraw";         // Initial object to draw
+const DEFAULT_TAB = "TransformationsTab";  // Initial tab (tabContent id)
+const DEFAULT_VIEW = "AxonometricDimetric" // Initial view (ProjectionsTab radio name)
+const DEFAULT_OBJECT = "cubeDraw";         // Initial object to draw (ModelsTab radio value)
 
 const MENU_SIZE = 0.33     // Size of the bottom menu (percentage)
-const SELECT_FREE = false; // Select the "Free" mode automatically if a slider is changed?
+const SELECT_FREE = false; // Select the "Free" mode automatically if a slider is changed
 
-const DEFAULT_ZOOM = 1;    // Default amount of zoom
-const ZOOM_SPEED = 0.9     // Speed of camera zoom (multiplier)
-const DEFAULT_FREE = true; // Allow free camera movement at the start?
-const ROTATE_SPEED = 0.3   // Speed of camera rotation (multiplier)
+const DEFAULT_ZOOM = 1;       // Default amount of zoom
+const ZOOM_SPEED = 0.9        // Speed of camera zoom (multiplier)
+const CAMERA_FREEMOVE = true; // Allow free camera movement with the mouse?
+const ROTATE_SPEED = 0.3      // Speed of camera rotation (multiplier)
 
 
 /*====================================
@@ -115,13 +113,19 @@ function openView(viewName)
             break;
         }
     }
+    
+    // Execute the requested tab
+    var views = document.getElementById(viewName).childNodes[1].childNodes[1].childNodes
+    for (var i=0; i<views.length; i+=2)
+        if (views[i].childNodes[0].childNodes[0].type === "radio" && views[i].childNodes[0].childNodes[0].checked)
+            views[i].childNodes[0].childNodes[0].oninput();
 }
 
 // Axonometric slider limiter
 function axonSliderLimit(sliderName)
 {
     var thisSlider = document.getElementById(sliderName);
-    var otherSlider = document.getElementById(sliderName === "AxonometricA" ? "AxonometricB" : "AxonometricA");
+    var otherSlider = document.getElementById(sliderName === "AxonometricFreeA" ? "AxonometricFreeB" : "AxonometricFreeA");
 
     // Force the sum of the two sliders to be 90 or less
     if ((+thisSlider.value) + (+otherSlider.value) > 90)
@@ -209,10 +213,12 @@ function updateSuperQuad()
     superquadBuild(e1, e2)
 }
 
+// File picker handler
 function handleOBJImport(evt)
 {
     OBJInit(gl, evt.target.files[0]);
 }
+
 
 /*====================================
             Event Handlers
@@ -254,7 +260,7 @@ function handleKeyDown(e)
     // Toggle autofire if we pressed the spacebar
     if (key == "f")
         wireframe_enabled = false;    
-	if (key == " ")
+	if (key == " " && CAMERA_FREEMOVE)
         camera_free = !camera_free;
     if (key == "w")
         wireframe_enabled = true;
@@ -288,7 +294,7 @@ function handleMouseDown(e)
     var midclick = e.button == 1;
     var rightclick = e.button == 2;
     
-    if (leftclick)
+    if (leftclick && CAMERA_FREEMOVE)
         mouse_down = true;
 }
 
@@ -322,8 +328,28 @@ function handleMouseOut(e)
 
 
 /*====================================
-         WebGL Initialization
+        Program Initialization
 ====================================*/
+
+// Initialize the view tabs and select the default value
+function InitializeViewTabs()
+{
+    var projectTab = document.getElementById("ProjectionsTab");
+    var innerTabs = [];
+    
+    // Get a list of all the view tabs
+    for (var i=0; i<projectTab.childNodes.length; i++)
+        if (document.getElementById("ProjectionsTab").childNodes[i].tagName === "BUTTON")
+            innerTabs.push(document.getElementById("ProjectionsTab").childNodes[i]);
+    
+    // Check the default radio buttons for each category
+    for (var i=0; i<innerTabs.length; i++)
+        document.getElementById(innerTabs[i].value).checked = true
+    
+    // Open the default view tab (this code looks really silly)
+    openView(document.getElementById(DEFAULT_VIEW).parentNode.parentNode.parentNode.parentNode.parentNode.id);
+}
+
 
 // Initialize the page
 window.onload = function init() 
@@ -357,14 +383,14 @@ window.onload = function init()
     gl.useProgram(program);
     
     // Set the global variables
-	camera_free = DEFAULT_FREE;
+	camera_free = CAMERA_FREEMOVE;
 	zoom = DEFAULT_ZOOM;
-    
+
     // Set the initial program settings
     resetObjectMatrix();
     openTab(DEFAULT_TAB);
     setDrawFunction(DEFAULT_OBJECT);
-    document.getElementById(DEFAULT_VIEW).oninput();
+    InitializeViewTabs();
     
     // Initialize the 3D shapes
     cubeInit(gl);
@@ -435,10 +461,10 @@ function viewOblique(args)
     // If we don't have any arguments, assume we're using "Free" mode
     if (!args)
     {
-        args = [+document.getElementById('obliqueRatio').value, +document.getElementById('obliqueAngle').value]
-               
+        args = [+document.getElementById('obliqueFreeRatio').value, +document.getElementById('obliqueFreeAngle').value]
+
         // Select the radio button that corresponds to "Free"
-        var elems = document.getElementsByName("projectionSelect")
+        var elems = document.getElementsByName("projectionSelectOblique")
         for (var i=0; i<elems.length; i++)
         {
             if (elems[i].id == "ObliqueFree") 
@@ -446,15 +472,19 @@ function viewOblique(args)
                 if (!elems[i].checked && !SELECT_FREE)
                     return;
                 elems[i].checked = true;
+                document.getElementById('obliqueFreeRatio').disabled = false;
+                document.getElementById('obliqueFreeAngle').disabled = false;
+                break;
             }
         }
-        
-        // Deselect everything else
-        for (var i=0; i<elems.length; i++)
-            if (elems[i].id != "ObliqueFree") 
-                elems[i].checked = false;
     }
-
+    else if (!SELECT_FREE)
+    {
+        // Disable the sliders
+        document.getElementById('obliqueFreeRatio').disabled = true;
+        document.getElementById('obliqueFreeAngle').disabled = true;
+    }
+    
     // Get the ratio and angle from the arguments
     var ratio = args[0];
     var angle = args[1];
@@ -475,10 +505,10 @@ function viewAxonometric(args)
     // If we don't have any arguments, assume we're using "Free" mode
     if (!args)
     {
-        args = [+document.getElementById('AxonometricA').value, +document.getElementById('AxonometricB').value]
+        args = [+document.getElementById('AxonometricFreeA').value, +document.getElementById('AxonometricFreeB').value]
         
         // Select the radio button that corresponds to "Free"
-        var elems = document.getElementsByName("projectionSelect")
+        var elems = document.getElementsByName("projectionSelectAxonometric")
         for (var i=0; i<elems.length; i++)
         {
             if (elems[i].id == "AxonometricFree") 
@@ -486,13 +516,17 @@ function viewAxonometric(args)
                 if (!elems[i].checked && !SELECT_FREE)
                     return;
                 elems[i].checked = true;
+                document.getElementById('AxonometricFreeA').disabled = false;
+                document.getElementById('AxonometricFreeB').disabled = false;
+                break;
             }
         }
-        
-        // Deselect everything else
-        for (var i=0; i<elems.length; i++)
-            if (elems[i].id != "AxonometricFree") 
-                elems[i].checked = false;
+    }
+    else if (!SELECT_FREE)
+    {
+        // Disable the sliders
+        document.getElementById('AxonometricFreeA').disabled = true;
+        document.getElementById('AxonometricFreeB').disabled = true;
     }
     
     // Get the value of A and B from the arguments
@@ -535,7 +569,9 @@ function viewPersp(args)
 function renderText()
 {
     var textElement = document.getElementById("text");
-    textElement.textContent = "Zoom: "+zoom.toFixed(3)+"\nWireframe: "+wireframe_enabled+"\nZ-Buffer: "+zbuffer_enabled+"\nCulling: "+culling_enabled+"\nFree Camera: "+camera_free;
+    textElement.textContent = "Zoom: "+zoom.toFixed(3)+"\nWireframe: "+wireframe_enabled+"\nZ-Buffer: "+zbuffer_enabled+"\nCulling: "+culling_enabled
+    if (CAMERA_FREEMOVE)
+        textElement.textContent+="\nFree Camera: "+camera_free;
 }
 
 // Render onto the canvas
