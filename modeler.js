@@ -5,12 +5,10 @@
  
 /**
     TODO:
-    - Set initial view to Axonometric Dimetric
     - Block the sliders unless free mode is on
     - Implement interface memory as in the requirements
     - Check if all the requirements are finished
-    - Revise comments (especially in the view* functions)
-    - Implement OBJ file importer
+    - Add ERROR model
     - Make nicer UI
 */
  
@@ -18,7 +16,7 @@
            Global Variables
 ====================================*/
 
-// WebGL globals
+// WebGL    
 var gl;
 var aspect;
 var drawFunc;
@@ -46,17 +44,16 @@ var culling_enabled = false;
 
 const DEFAULT_TAB = "TransformationsTab"; // Initial tab
 const DEFAULT_VIEW = viewAxonometric;     // Initial view
-const DEFAULT_ARGS = [42, 7];             // Initial arguments
+const DEFAULT_ARGS = [42, 7];             // Initial view arguments
 const DEFAULT_OBJECT = cubeDraw;          // Initial object to draw
-const MENU_SIZE = 0.33                    // Size of the bottom menu (percentage)
 
-const SELECT_FREE = false; // Select the "Free" mode automatically if a slider is changed
+const MENU_SIZE = 0.33     // Size of the bottom menu (percentage)
+const SELECT_FREE = false; // Select the "Free" mode automatically if a slider is changed?
 
-const DEFAULT_ZOOM = 1; 
-const DEFAULT_FREE = true; 
-
-const ROTATE_SPEED = 0.3 // Speed of camera rotation (multiplier)
-const ZOOM_SPEED = 0.9   // Speed of camera zoom (multiplier)
+const DEFAULT_ZOOM = 1;    // Default amount of zoom
+const ZOOM_SPEED = 0.9     // Speed of camera zoom (multiplier)
+const DEFAULT_FREE = true; // Allow free camera movement at the start?
+const ROTATE_SPEED = 0.3   // Speed of camera rotation (multiplier)
 
 
 /*====================================
@@ -217,6 +214,10 @@ function updateSuperQuad()
     superquadBuild(e1, e2)
 }
 
+function handleOBJImport(evt)
+{
+    OBJInit(gl, evt.target.files[0]);
+}
 
 /*====================================
             Event Handlers
@@ -237,9 +238,9 @@ function updateCanvas()
     canvas.height = h;
     gl.viewport(0, 0, w, h);
 
-    // Setup the view
-
-    mView = projectionFunc(projectionArgs);
+    // Setup the view and projection matricies
+    var newView = projectionFunc(projectionArgs);
+    mView = (newView != null) ? newView : mView;
     mView = mult(mView, mult(rotateX(camera_yaw), rotateY(camera_pitch)));
     mProjection = orthographicCube();
     
@@ -386,6 +387,7 @@ window.onload = function init()
     canvas.addEventListener('mouseup', handleMouseUp);
     canvas.addEventListener('mousemove', handleMouseMove);
     canvas.addEventListener('mouseout', handleMouseOut);
+    document.getElementById('objFilePicker').addEventListener('change', handleOBJImport);
     
     // Render the model
     render();
@@ -399,7 +401,7 @@ window.onload = function init()
 // Generates a cube matrix for use with orthographic projection
 function orthographicCube()
 {
-    // Define the shape of the cube projection
+    // Define the shape of the cube
     var left = -1*aspect*zoom;
     var right = 1*aspect*zoom;
     var bottom = -1*zoom;
@@ -410,7 +412,7 @@ function orthographicCube()
     var h = top-bottom;
     var d = far-near;
 
-    // Create one of the projection matricies
+    // Create a matrix for the cube's projection
     var result = mat4();
     result[0][0] = 2.0/w;
     result[1][1] = 2.0/h;
@@ -419,19 +421,18 @@ function orthographicCube()
     result[1][3] = -(top + bottom)/h;
     result[2][3] = -(near + far)/d;
     
-    // Return the projection matrix
+    // Return the matrix
     return result;
 }
 
-// Orthograpic projection matrix generator
+// Orthograpic view matrix generator
 // Arguments - A rotation matrix
 function viewOrtho(args)
 {
     return mult(mat4(), args);
 }
 
-
-// Oblique projection matrix generator
+// Oblique view matrix generator
 // Arguments - An array with the first index being ratio, second being angle
 function viewOblique(args)
 {
@@ -458,20 +459,20 @@ function viewOblique(args)
                 elems[i].checked = false;
     }
 
-    // Set the ratio and args
+    // Get the ratio and angle from the arguments
     var ratio = args[0];
     var angle = args[1];
 
-    // Create the projection matricies
+    // Create the matrix
     var oblique = mat4();
     oblique[0][2] = -ratio*Math.cos(radians(angle));
     oblique[1][2] = -ratio*Math.sin(radians(angle));
 
-    // Return the projection matrix
+    // Return the oblique view matrix
     return oblique;
 }
 
-// Axonometric projection matrix generator
+// Axonometric view matrix generator
 // Arguments - An array with the first index being A, second being B
 function viewAxonometric(args)
 {
@@ -498,28 +499,34 @@ function viewAxonometric(args)
                 elems[i].checked = false;
     }
     
+    // Get the value of A and B from the arguments
     var A = args[0];
     var B = args[1];
     
+    // Calculate theta and gamma
     var theta = Math.atan(Math.sqrt(Math.tan(radians(A))/Math.tan(radians(B))))-Math.PI/2;
     var gamma = Math.asin(Math.sqrt(Math.tan(radians(A))*Math.tan(radians(B))));
     
-    // Return the projection matrix
+    // Return the axonometrix view matrix
     return mult(rotateX(degrees(gamma)), rotateY(degrees(theta)));
 }
 
-// Basic perspective view
-// Arguments - The value of D
+// Perspective view matrix generator
+// Arguments - An array with the first index being D
 function viewPersp(args)
 {
+    // Get the value of D from the slider if no argument was provided
     if (!args)
         args = [+document.getElementById('PerspD').value]
     
+    // Get the value of D from the arguments
     var d = args[0]+zoom;
     
+    // Generate the perspective view matrix
     var result = mat4();
     result[3][2] = -1/d;
 
+    // Return the perspective view matrix
     return result;
 }
 

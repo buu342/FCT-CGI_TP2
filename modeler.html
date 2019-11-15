@@ -31,6 +31,7 @@
             varying vec4 fColor;
 
             void main() {
+                gl_PointSize = 5.0;
                 fColor.rgb = vNormal.xyz;
                 gl_Position = mProjection * mView * mModel * vPosition;
             }
@@ -52,6 +53,7 @@
         <script type="text/javascript" src="../Common/bunny-data.js"></script>
         <script type="text/javascript" src="../Common/bunny.js"></script>
         <script type="text/javascript" src="../Common/superquad.js"></script>
+        <script type="text/javascript" src="../Common/objparser.js"></script>
         <script type="text/javascript" src="modeler.js"></script>
     </head>
     <body>
@@ -125,7 +127,7 @@
 				<div id="ObliqueView" class="viewContent">
 					<table style="width:40%; text-align: left">
 						<tr><th><input type="radio" name="projectionSelect" oninput="setProjectionFunction(viewOblique, [1, 45])"> Cavalier (ℓ=1, β=45)</th></tr>
-						<tr><th><input type="radio" name="projectionSelect" oninput="setProjectionFunction(viewOblique, [0.5, Math.atan(2)/Math.PI*180])"> Cabinet(ℓ=0.5, β=63.43)</th></tr>
+						<tr><th><input type="radio" name="projectionSelect" oninput="setProjectionFunction(viewOblique, [0.5, Math.atan(2)/Math.PI*180])"> Cabinet (ℓ=0.5, β=63.43)</th></tr>
 						<tr><th><input type="radio" id="ObliqueFree" name="projectionSelect" oninput="setProjectionFunction(viewOblique)"> Free</th></tr>
                         <tr><th>ℓ <input type="range" min="0" max="1" value="0.5" step="0.01" class="slider" id="obliqueRatio" oninput="setProjectionFunction(viewOblique, null, true)"></th></tr>
                         <tr><th>β <input type="range" min="0" max="360" value="45" step="1" class="slider" id="obliqueAngle" oninput="setProjectionFunction(viewOblique, null, true)"></th></tr>
@@ -151,8 +153,8 @@
                         <th>E2<input type="range" min="0" max="4" value="1" step="0.01" class="slider" id="superQuadE2" oninput="updateSuperQuad()"></th>
                     </tr>
                     <tr>
-                        <th><input type="radio" value="superquadDraw" name="drawSelect" oninput="setDrawFunction(this.value)"> Custom .OBJ model</th>
-                        <th><input type="file" value="objDraw" name="drawSelect"></th>
+                        <th><input type="radio" value="OBJDraw" name="drawSelect" oninput="setDrawFunction(this.value)"> Custom .OBJ model</th>
+                        <th><input type="file" id="objFilePicker" name="drawSelect"></th>
                     </tr>
                 </table>
             </div>
