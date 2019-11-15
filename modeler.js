@@ -8,8 +8,7 @@
     - Block the sliders unless free mode is on
     - Implement interface memory as in the requirements
     - Check if all the requirements are finished
-    - Add ERROR model
-    - Make nicer UI
+    - Make nicer UI in CSS
 */
  
 /*====================================
@@ -42,10 +41,9 @@ var culling_enabled = false;
  Change if you know what you're doing
 ====================================*/
 
-const DEFAULT_TAB = "TransformationsTab"; // Initial tab
-const DEFAULT_VIEW = viewAxonometric;     // Initial view
-const DEFAULT_ARGS = [42, 7];             // Initial view arguments
-const DEFAULT_OBJECT = cubeDraw;          // Initial object to draw
+const DEFAULT_TAB = "TransformationsTab";  // Initial tab
+const DEFAULT_VIEW = "AxonometricDimetric" // Initial view
+const DEFAULT_OBJECT = "cubeDraw";         // Initial object to draw
 
 const MENU_SIZE = 0.33     // Size of the bottom menu (percentage)
 const SELECT_FREE = false; // Select the "Free" mode automatically if a slider is changed?
@@ -134,10 +132,7 @@ function axonSliderLimit(sliderName)
 function setDrawFunction(func)
 {
     // Assign the draw function based on the input
-    if (typeof func === 'string')
-        drawFunc = window[func];
-    else
-        drawFunc = func;
+    drawFunc = window[func];
     
     // Select the radio button that corresponds to the input
     var elems = document.getElementsByName("drawSelect")
@@ -369,7 +364,7 @@ window.onload = function init()
     resetObjectMatrix();
     openTab(DEFAULT_TAB);
     setDrawFunction(DEFAULT_OBJECT);
-    setProjectionFunction(DEFAULT_VIEW, DEFAULT_ARGS);
+    document.getElementById(DEFAULT_VIEW).oninput();
     
     // Initialize the 3D shapes
     cubeInit(gl);
@@ -378,6 +373,7 @@ window.onload = function init()
     torusInit(gl);
     bunnyInit(gl);
     superquadInit(gl);
+    errorInit(gl);
     
     // Setup event listeners
     window.addEventListener('resize', updateCanvas);
