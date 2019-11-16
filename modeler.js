@@ -3,10 +3,6 @@
  * By Lourenço Soares (54530)
  */
  
-/**
-    TODO:
-    - Make nicer UI in CSS
-*/
  
 /*====================================
            Global Variables
@@ -17,7 +13,7 @@ var gl;
 var aspect;
 var drawFunc;
 var projectionFunc, projectionArgs;
-var modelMTX = mat4();
+var mModel = mat4();
 var mView, mProjection;
 
 // Camera globals
@@ -39,16 +35,16 @@ var culling_enabled = false;
 ====================================*/
 
 const DEFAULT_TAB = "TransformationsTab";  // Initial tab (tabContent id)
-const DEFAULT_VIEW = "AxonometricDimetric" // Initial view (ProjectionsTab radio name)
+const DEFAULT_VIEW = "AxonometricDimetric";// Initial view (ProjectionsTab radio name)
 const DEFAULT_OBJECT = "cubeDraw";         // Initial object to draw (ModelsTab radio value)
 
-const MENU_SIZE = 0.33     // Size of the bottom menu (percentage)
+const MENU_SIZE = 0.33;    // Size of the bottom menu (percentage)
 const SELECT_FREE = false; // Select the "Free" mode automatically if a slider is changed
 
 const DEFAULT_ZOOM = 1;       // Default amount of zoom
-const ZOOM_SPEED = 0.9        // Speed of camera zoom (multiplier)
+const ZOOM_SPEED = 0.9;       // Speed of camera zoom (multiplier)
 const CAMERA_FREEMOVE = true; // Allow free camera movement with the mouse?
-const ROTATE_SPEED = 0.3      // Speed of camera rotation (multiplier)
+const ROTATE_SPEED = 0.3;     // Speed of camera rotation (multiplier)
 
 
 /*====================================
@@ -180,7 +176,7 @@ function updateObjectMatrix()
     var sliderSclY = +document.getElementById('objSclY').value
     var sliderSclZ = +document.getElementById('objSclZ').value
     
-    modelMTX = mult(translate(sliderPosX, sliderPosY, sliderPosZ), 
+    mModel = mult(translate(sliderPosX, sliderPosY, sliderPosZ), 
                         mult(rotateX(sliderAngX),
                         mult(rotateY(sliderAngY),
                         mult(rotateZ(sliderAngZ),
@@ -596,7 +592,7 @@ function render()
     
     // Transform the shape
     var mModelLoc = gl.getUniformLocation(program, "mModel");
-    gl.uniformMatrix4fv(mModelLoc, false, flatten(modelMTX));
+    gl.uniformMatrix4fv(mModelLoc, false, flatten(mModel));
 
     // Draw the shape
     drawFunc(gl, program, !wireframe_enabled)

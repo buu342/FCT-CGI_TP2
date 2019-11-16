@@ -7,6 +7,7 @@
                 margin: 0px;
                 border: 0;
                 display: block;
+                background-color:#F7F7F7;
             }
             #overlay {
                 position: absolute;
@@ -19,6 +20,38 @@
                 white-space: pre-line;
                 user-select: none;
             }
+            .tabLinks{
+                display:inline-block;
+                padding:0.3em 1.0em;
+                margin: 0.3em -0.1em -0.5em 0.4em;
+                border-radius:0.1em;
+                box-sizing: border-box;
+                text-decoration:none;
+                font-weight:400;
+                color:#000000;
+                background-color:#DDDDDD;
+                box-shadow:inset 0 -0.6em 1em -0.35em rgba(0,0,0,0.17),inset 0 0.6em 2em -0.3em rgba(0,0,0,0.15),inset 0 0 0em 0.05em rgba(0,0,0,0.12);
+                text-align:center;
+                position:relative;  
+            }            
+            .viewLinks{
+                display:inline-block;
+                padding:0.3em 1.0em;
+                margin: -0.3em -0.1em -0.5em 0.4em;
+                border-radius:0.1em;
+                box-sizing: border-box;
+                text-decoration:none;
+                font-weight:400;
+                color:#000000;
+                background-color:#DDDDDD;
+                box-shadow:inset 0 -0.6em 1em -0.35em rgba(0,0,0,0.17),inset 0 0.6em 2em -0.3em rgba(0,0,0,0.15),inset 0 0 0em 0.05em rgba(0,0,0,0.12);
+                text-align:center;
+                position:relative;
+            }
+            .tabLinks:active, .viewLinks:active{
+                box-shadow:inset 0 0.6em 2em -0.3em rgba(0,0,0,0.15),inset 0 0 0em 0.05em rgba(255,255,255,0.12);
+            }
+
         </style>
         <script id="vertex-shader" type="x-shader/x-vertex">
             attribute vec4 vPosition;
@@ -52,9 +85,9 @@
         <script type="text/javascript" src="../Common/cylinder.js"></script>
         <script type="text/javascript" src="../Common/bunny-data.js"></script>
         <script type="text/javascript" src="../Common/bunny.js"></script>
-        <script type="text/javascript" src="../Common/superquad.js"></script>
-        <script type="text/javascript" src="../Common/error-data.js"></script>
-        <script type="text/javascript" src="../Common/objparser.js"></script>
+        <script type="text/javascript" src="include/superquad.js"></script>
+        <script type="text/javascript" src="include/error-data.js"></script>
+        <script type="text/javascript" src="include/objparser.js"></script>
         <script type="text/javascript" src="modeler.js"></script>
     </head>
     <body>
@@ -108,7 +141,7 @@
 				<button class="viewLinks" name="OrtognalView" value="OrthoFront" onclick="openView(this.name)">Orthogonal</button>
 				<button class="viewLinks" name="AxonometricView" value="AxonometricDimetric" onclick="openView(this.name)">Axonometric</button>
 				<button class="viewLinks" name="ObliqueView" value="ObliqueCavalier" onclick="openView(this.name)">Oblique</button>
-				<button class="viewLinks" name="PerspectiveView" value="PerspectiveFree" onclick="openView(this.name)">Perspective</button>
+				<button class="viewLinks" name="PerspectiveView" value="PerspectiveFree" onclick="openView(this.name)">Perspective</button></br></br>
 				<div id="OrtognalView" class="viewContent">
                     <table style="width:40%; text-align: left">
 						<tr><th><input type="radio" id="OrthoFront" name="projectionSelectOrtho" oninput="setProjectionFunction(viewOrtho, mat4())"> Front</th></tr>
