@@ -10,4 +10,4 @@ An interactive model viewer written in WebGL. Allows you to view a 3D shape in a
 * Scroll wheel - Zoom<br/>
 * Space - Enable/Disable camera movement<br/><br/> 
 
-<img align="center" src="https://i.imgur.com/aqhm3ES.png" width="800" height="450" />
+<img align="center" src="https://i.imgur.com/GahZ25p.png" width="800" height="450" />
